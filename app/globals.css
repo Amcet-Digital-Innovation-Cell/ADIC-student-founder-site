@@ -1,0 +1,246 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=Inter:wght@300;400;500;600;700&family=Manrope:wght@300;400;500;600;700&display=swap');
+
+/* ============================================================
+   LUXURY DESIGN TOKEN SYSTEM
+   BLACK LEATHER · ROSSO ONYX · BLUSH SUEDE · CHAMPAGNE GOLD
+   ============================================================ */
+:root {
+  /* Core Palette */
+  --color-black-leather:  #111111;
+  --color-rosso-onyx:     #EAE3D5;
+  --color-blush-suede:    #9D625F;
+  --color-champagne-gold: #B89568;
+  --color-deep-charcoal:  #252322;
+  --color-soft-cream:     #F3EBDD;
+  --color-muted-taupe:    #A99C8C;
+
+  /* Derived Shades */
+  --color-champagne-dark: #9A7B54;
+  --color-champagne-light:#CAB08A;
+  --color-blush-dark:     #7D4D4A;
+  --color-rosso-deep:     #D9CEBD;
+  --color-leather-mid:    #1A1A1A;
+
+  /* Semantic Tokens — Dark UI */
+  --primary:              var(--color-champagne-gold);
+  --primary-hover:        var(--color-champagne-dark);
+  --primary-light:        rgba(184,149,104,0.12);
+  --primary-soft:         rgba(184,149,104,0.06);
+  --secondary:            var(--color-blush-suede);
+
+  /* Background */
+  --bg:                   var(--color-rosso-onyx);
+  --bg-dark:              var(--color-black-leather);
+  --surface:              var(--color-soft-cream);
+  --surface-dark:         var(--color-deep-charcoal);
+  --surface-mid:          #1C1A19;
+  --warm-surface:         #EDE5D8;
+
+  /* Text */
+  --text-primary:         var(--color-black-leather);
+  --text-secondary:       #4A3F35;
+  --text-muted:           var(--color-muted-taupe);
+  --text-on-dark:         var(--color-soft-cream);
+  --text-on-gold:         var(--color-black-leather);
+
+  /* Borders */
+  --border:               rgba(184,149,104,0.25);
+  --border-strong:        rgba(184,149,104,0.45);
+  --border-subtle:        rgba(169,156,140,0.20);
+  --divider:              rgba(184,149,104,0.18);
+
+  /* Legacy aliases for backward compatibility */
+  --deep-bottle:          var(--color-deep-charcoal);
+  --surface-green:        var(--warm-surface);
+  --gold:                 var(--color-champagne-gold);
+  --gold-soft:            rgba(184,149,104,0.12);
+  --ink:                  var(--text-primary);
+  --paper:                var(--bg);
+  --mustard:              var(--color-champagne-gold);
+  --sage:                 var(--color-blush-suede);
+  --rust:                 #9D625F;
+  --line:                 var(--border);
+  --char:                 var(--text-secondary);
+  --border-strong-val:    var(--border-strong);
+
+  /* Shadows */
+  --shadow-warm:          0 8px 32px rgba(17,17,17,0.08), 0 1px 4px rgba(17,17,17,0.04);
+  --shadow-card:          0 1px 6px rgba(17,17,17,0.06), 0 1px 2px rgba(17,17,17,0.04);
+  --shadow-card-hover:    0 12px 40px rgba(17,17,17,0.10), 0 2px 8px rgba(17,17,17,0.06);
+  --shadow-gold:          0 4px 20px rgba(184,149,104,0.20);
+  --shadow-modal:         0 24px 80px rgba(17,17,17,0.30), 0 4px 20px rgba(17,17,17,0.12);
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: 'Inter', 'Manrope', system-ui, sans-serif;
+  background-color: var(--bg);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  min-height: 100vh;
+}
+
+/* Typography */
+.font-serif { font-family: 'Cormorant Garamond', Georgia, serif !important; }
+.font-display { font-family: 'Cormorant Garamond', Georgia, serif !important; }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--color-muted-taupe); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--color-champagne-gold); }
+
+/* ============================================================
+   ANIMATIONS
+   ============================================================ */
+@keyframes riseIn {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes popIn {
+  from { opacity: 0; transform: scale(0.96) translateY(8px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.animate-rise-in { animation: riseIn 0.6s cubic-bezier(.22,1,.36,1) forwards; }
+.animate-fade-in { animation: fadeIn 0.4s ease forwards; }
+.animate-pop-in  { animation: popIn  0.35s cubic-bezier(.22,1,.36,1) forwards; }
+.animate-fadeIn  { animation: fadeIn 0.4s ease forwards; }
+
+/* ============================================================
+   DIVIDERS
+   ============================================================ */
+.divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--color-champagne-gold), transparent);
+  opacity: 0.4;
+}
+.divider-subtle {
+  height: 1px;
+  background: var(--divider);
+}
+
+/* ============================================================
+   CARD SYSTEM — Luxury surface
+   ============================================================ */
+.card-surface {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: var(--shadow-card);
+  transition: box-shadow 0.25s ease, border-color 0.25s ease, transform 0.2s ease;
+}
+.card-surface:hover {
+  box-shadow: var(--shadow-card-hover);
+  border-color: var(--border-strong);
+}
+
+.card-dark {
+  background: var(--color-deep-charcoal);
+  border: 1px solid rgba(184,149,104,0.15);
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(17,17,17,0.15);
+  transition: box-shadow 0.25s ease, border-color 0.25s ease;
+}
+.card-dark:hover {
+  border-color: rgba(184,149,104,0.30);
+  box-shadow: 0 8px 32px rgba(17,17,17,0.20);
+}
+
+/* ============================================================
+   BUTTONS
+   ============================================================ */
+.btn-primary {
+  background: var(--color-champagne-gold);
+  color: var(--color-black-leather);
+  font-weight: 600;
+  border: 1px solid var(--color-champagne-gold);
+  transition: background 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
+}
+.btn-primary:hover {
+  background: var(--color-champagne-dark);
+  border-color: var(--color-champagne-dark);
+  box-shadow: var(--shadow-gold);
+  transform: translateY(-1px);
+}
+
+.btn-secondary {
+  background: transparent;
+  color: var(--color-champagne-gold);
+  font-weight: 600;
+  border: 1px solid var(--color-champagne-gold);
+  transition: background 0.2s ease, box-shadow 0.2s ease;
+}
+.btn-secondary:hover {
+  background: rgba(184,149,104,0.10);
+}
+
+.btn-ghost-light {
+  background: transparent;
+  color: var(--color-soft-cream);
+  font-weight: 500;
+  border: 1px solid rgba(243,235,221,0.2);
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+.btn-ghost-light:hover {
+  background: rgba(243,235,221,0.08);
+  border-color: rgba(243,235,221,0.35);
+}
+
+/* ============================================================
+   TAGS / BADGES
+   ============================================================ */
+.tag-green {
+  background: rgba(184,149,104,0.12);
+  color: var(--color-champagne-dark);
+  border: 1px solid rgba(184,149,104,0.25);
+  font-weight: 600;
+}
+
+.badge-verified {
+  background: rgba(184,149,104,0.14);
+  color: var(--color-champagne-gold);
+  border: 1px solid rgba(184,149,104,0.30);
+}
+
+/* ============================================================
+   FORM INPUTS
+   ============================================================ */
+input, textarea, select {
+  accent-color: var(--color-champagne-gold);
+}
+
+/* ============================================================
+   GOLD ACCENT LINE
+   ============================================================ */
+.gold-line {
+  width: 40px;
+  height: 1.5px;
+  background: var(--color-champagne-gold);
+  opacity: 0.7;
+}
+
+.gold-divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, var(--color-champagne-gold) 30%, var(--color-champagne-gold) 70%, transparent 100%);
+  opacity: 0.35;
+  margin: 0 auto;
+}
+
+/* Footer link hover */
+.footer-link:hover {
+  opacity: 0.7;
+}

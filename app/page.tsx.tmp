@@ -1,0 +1,312 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import {
+  GraduationCap,
+  Rocket,
+  Landmark,
+  ArrowRight,
+  Sparkles,
+  CheckCircle2,
+  Clock,
+  ShieldCheck,
+  Briefcase,
+  UserCheck,
+} from "lucide-react";
+import { useAuth } from "@/lib/AuthContext";
+import { getRequirements } from "@/lib/api";
+import type { Requirement } from "@/types";
+
+export default function Page() {
+  const router = useRouter();
+  const { user, role, isAuthenticated, demoLogin } = useAuth();
+  const [requirements, setRequirements] = useState<Requirement[]>([]);
+
+  useEffect(() => {
+    getRequirements().then(setRequirements);
+  }, []);
+
+  const handleRoleSelect = (targetRole: "student" | "founder" | "edc") => {
+    if (isAuthenticated && role === targetRole) {
+      if (targetRole === "student") router.push("/requirements");
+      else if (targetRole === "founder") router.push("/requirements");
+      else router.push("/edc");
+    } else {
+      router.push(`/login?role=${targetRole}`);
+    }
+  };
+
+  const handleDemoAccess = (targetRole: "student" | "founder" | "edc") => {
+    demoLogin(targetRole);
+    if (targetRole === "student") router.push("/requirements");
+    else if (targetRole === "founder") router.push("/requirements");
+    else router.push("/edc");
+  };
+
+  // ── Role-specific design tokens ──
+  const roleConfig = {
+    student: {
+      color: "#52b788",
+      colorLight: "rgba(82,183,136,0.15)",
+      colorBorder: "rgba(82,183,136,0.3)",
+      colorActive: "rgba(82,183,136,0.08)",
+      gradient: "linear-gradient(135deg,#52b788,#2d6a4f)",
+      badge: "rgba(82,183,136,0.15)",
+      badgeText: "#52b788",
+      badgeBorder: "rgba(82,183,136,0.3)",
+      btnBg: "#52b788",
+      btnText: "#0d2b1f",
+    },
+    founder: {
+      color: "#c9a84c",
+      colorLight: "rgba(201,168,76,0.15)",
+      colorBorder: "rgba(201,168,76,0.3)",
+      colorActive: "rgba(201,168,76,0.06)",
+      gradient: "linear-gradient(135deg,#c9a84c,#e8c97e)",
+      badge: "rgba(201,168,76,0.15)",
+      badgeText: "#e8c97e",
+      badgeBorder: "rgba(201,168,76,0.3)",
+      btnBg: "#c9a84c",
+      btnText: "#0d2b1f",
+    },
+    edc: {
+      color: "#95d5b2",
+      colorLight: "rgba(149,213,178,0.15)",
+      colorBorder: "rgba(149,213,178,0.3)",
+      colorActive: "rgba(149,213,178,0.06)",
+      gradient: "linear-gradient(135deg,#95d5b2,#52b788)",
+      badge: "rgba(149,213,178,0.15)",
+      badgeText: "#95d5b2",
+      badgeBorder: "rgba(149,213,178,0.3)",
+      btnBg: "#95d5b2",
+      btnText: "#0d2b1f",
+    },
+  };
+
+  const portalCards = [
+    {
+      key: "student" as const,
+      icon: <GraduationCap size={26} />,
+      label: "STUDENT FLOW",
+      title: "I'm a Student",
+      desc: (
+        <>
+          Sign in to set up your profile with <strong style={{ color: "#52b788" }}>Department</strong>,{" "}
+          <strong style={{ color: "#52b788" }}>LinkedIn</strong>,{" "}
+          <strong style={{ color: "#52b788" }}>GitHub</strong>, and skills.
+        </>
+      ),
+      features: [
+        "Browse EDC-approved requirements",
+        "Auto-filled LinkedIn & GitHub applications",
+        "Live application status tracking",
+      ],
+      actionIcon: <UserCheck size={14} />,
+      actionLabel: (active: boolean) => active ? "Go to Student Requirements Board" : "Sign In / Register as Student",
+      demoLabel: "1-Click Demo: Priya (CSE · IITM)",
+    },
+    {
+      key: "founder" as const,
+      icon: <Rocket size={26} />,
+      label: "FOUNDER FLOW",
+      title: "I'm a Founder",
+      desc: (
+        <>
+          Post talent requisitions for your startup. Postings route to the{" "}
+          <strong style={{ color: "#c9a84c" }}>EDC Cell</strong> for verification before publishing.
+        </>
+      ),
+      features: [
+        "Post new role & required tech stack",
+        "Submitted directly for EDC Cell review",
+        "Receive verified student candidate inboxes",
+      ],
+      actionIcon: <Rocket size={14} />,
+      actionLabel: (active: boolean) => active ? "Go to Post Requirement Form" : "Sign In / Register as Founder",
+      demoLabel: "1-Click Demo: Arun (Ash & Bolt)",
+    },
+    {
+      key: "edc" as const,
+      icon: <Landmark size={26} />,
+      label: "EDC CELL FLOW",
+      title: "I'm an EDC / E-Cell",
+      desc: (
+        <>
+          Review founder requisition posts.{" "}
+          <strong style={{ color: "#95d5b2" }}>Approve & Publish</strong> to make them live on the student board.
+        </>
+      ),
+      features: [
+        "Review founder requisition queue",
+        '1-Click "Approve & Publish to Board"',
+        "Stamp postings with EDC Verification seal",
+      ],
+      actionIcon: <ShieldCheck size={14} />,
+      actionLabel: (active: boolean) => active ? "Go to EDC Approval Desk" : "Sign In / Register as EDC",
+      demoLabel: "1-Click Demo: Dr. Ramesh (IITM E-Cell)",
+    },
+  ];
+
+  return (
+    <main className="mx-auto max-w-6xl px-4 pb-20 pt-12 sm:px-6">
+      {/* ── Hero ─────────────────────────────────── */}
+      <section className="text-center animate-rise-in">
+        <p className="flex items-center justify-center gap-2 font-mono text-xs tracking-[0.12em]" style={{ color: "#c9a84c" }}>
+          <span
+            className="inline-block h-2 w-2 rounded-full"
+            style={{ background: "#52b788", animation: "pulse 2s ease infinite" }}
+          />
+          CAMPUS TALENT REQUISITION &amp; EDC VERIFICATION PIPELINE
+        </p>
+
+        <h1
+          className="mt-4 font-serif text-[clamp(30px,5vw,52px)] font-bold leading-[1.1]"
+          style={{ color: "#d8f3dc" }}
+        >
+          Where founders requisition talent,
+          <br />
+          <span style={{ color: "#c9a84c" }}>verified</span> by university EDC cells.
+        </h1>
+
+        <p
+          className="mx-auto mt-4 max-w-[600px] text-[14.5px] leading-relaxed"
+          style={{ color: "rgba(149,213,178,0.75)" }}
+        >
+          Select your portal below. <strong style={{ color: "#d8f3dc" }}>Students</strong> apply with verified GitHub, LinkedIn &amp; department
+          portfolios. <strong style={{ color: "#d8f3dc" }}>Founders</strong> post requirements.{" "}
+          <strong style={{ color: "#d8f3dc" }}>EDC Cells</strong> approve them before going live.
+        </p>
+
+        {/* Gradient divider */}
+        <div className="divider mx-auto mt-8 max-w-sm" />
+      </section>
+
+      {/* ── Portal Cards ─────────────────────────── */}
+      <section className="mt-10 grid grid-cols-1 gap-6 md:grid-cols-3">
+        {portalCards.map((card) => {
+          const cfg = roleConfig[card.key];
+          const isActive = role === card.key;
+          return (
+            <div
+              key={card.key}
+              className="glass-card flex flex-col justify-between rounded-2xl p-6"
+              style={isActive ? { borderColor: cfg.colorBorder, background: cfg.colorActive } : {}}
+            >
+              <div>
+                {/* Header */}
+                <div className="flex items-center justify-between">
+                  <div
+                    className="flex h-12 w-12 items-center justify-center rounded-xl shadow-sm"
+                    style={{ background: cfg.gradient, color: "#0d2b1f" }}
+                  >
+                    {card.icon}
+                  </div>
+                  <span
+                    className="rounded-full px-2.5 py-0.5 font-mono text-[10.5px] font-bold uppercase"
+                    style={{
+                      background: cfg.badge,
+                      color: cfg.badgeText,
+                      border: `1px solid ${cfg.badgeBorder}`,
+                    }}
+                  >
+                    {card.label}
+                  </span>
+                </div>
+
+                <h2 className="mt-4 font-serif text-xl font-bold" style={{ color: "#d8f3dc" }}>
+                  {card.title}
+                </h2>
+                <p className="mt-1.5 text-xs leading-relaxed" style={{ color: "rgba(149,213,178,0.7)" }}>
+                  {card.desc}
+                </p>
+
+                {/* Features */}
+                <div
+                  className="mt-4 space-y-2 pt-3 text-xs"
+                  style={{ borderTop: "1px solid rgba(82,183,136,0.15)" }}
+                >
+                  {card.features.map((f) => (
+                    <div key={f} className="flex items-center gap-2 font-medium" style={{ color: "#95d5b2" }}>
+                      <CheckCircle2 size={13} style={{ color: cfg.color, flexShrink: 0 }} />
+                      <span>{f}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="mt-6 space-y-2">
+                <button
+                  onClick={() => handleRoleSelect(card.key)}
+                  className="flex w-full items-center justify-center gap-1.5 rounded-lg py-2.5 text-xs font-bold transition"
+                  style={{ background: cfg.gradient, color: cfg.btnText }}
+                >
+                  {card.actionIcon}
+                  {card.actionLabel(isAuthenticated && isActive)}
+                  <ArrowRight size={13} />
+                </button>
+
+                <button
+                  onClick={() => handleDemoAccess(card.key)}
+                  className="flex w-full items-center justify-center gap-1 rounded-md py-1.5 font-mono text-[11px] font-semibold transition"
+                  style={{
+                    background: "rgba(13,43,31,0.6)",
+                    border: "1px solid rgba(82,183,136,0.2)",
+                    color: "rgba(149,213,178,0.8)",
+                  }}
+                >
+                  <Sparkles size={11} style={{ color: "#c9a84c" }} /> {card.demoLabel}
+                </button>
+              </div>
+            </div>
+          );
+        })}
+      </section>
+
+      {/* ── Stats Bar ────────────────────────────── */}
+      <section
+        className="mt-12 rounded-2xl p-5"
+        style={{
+          background: "rgba(22,61,44,0.5)",
+          backdropFilter: "blur(16px)",
+          border: "1px solid rgba(82,183,136,0.15)",
+          boxShadow: "0 4px 24px rgba(0,0,0,0.25)",
+        }}
+      >
+        <div className="flex flex-wrap items-center justify-around gap-4 text-center">
+          <div>
+            <span className="font-serif text-2xl font-bold" style={{ color: "#52b788" }}>
+              {requirements.length}
+            </span>
+            <p className="font-mono text-[11px] mt-0.5" style={{ color: "rgba(149,213,178,0.5)" }}>
+              EDC Approved &amp; Live
+            </p>
+          </div>
+          <div className="h-8 w-px hidden sm:block" style={{ background: "rgba(82,183,136,0.2)" }} />
+          <div>
+            <span className="font-serif text-2xl font-bold" style={{ color: "#c9a84c" }}>2</span>
+            <p className="font-mono text-[11px] mt-0.5" style={{ color: "rgba(149,213,178,0.5)" }}>
+              Awaiting EDC Verification
+            </p>
+          </div>
+          <div className="h-8 w-px hidden sm:block" style={{ background: "rgba(82,183,136,0.2)" }} />
+          <div>
+            <span className="font-serif text-2xl font-bold" style={{ color: "#d8f3dc" }}>5</span>
+            <p className="font-mono text-[11px] mt-0.5" style={{ color: "rgba(149,213,178,0.5)" }}>
+              Registered Startups
+            </p>
+          </div>
+          <div className="h-8 w-px hidden sm:block" style={{ background: "rgba(82,183,136,0.2)" }} />
+          <div>
+            <span className="font-serif text-2xl font-bold" style={{ color: "#95d5b2" }}>6</span>
+            <p className="font-mono text-[11px] mt-0.5" style={{ color: "rgba(149,213,178,0.5)" }}>
+              University Departments
+            </p>
+          </div>
+        </div>
+      </section>
+    </main>
+  );
+}
