@@ -33,6 +33,8 @@ export default function EdcHubPage() {
   const [filter, setFilter] = useState<"ALL" | ApprovalStatus>("PENDING_APPROVAL");
   const [searchQuery, setSearchQuery] = useState("");
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
+  const [rejectingId, setRejectingId] = useState<string | null>(null);
+  const [rejectReason, setRejectReason] = useState("");
 
   const edcCellName =
     user?.edcProfile?.cellName || user?.edcProfile?.institutionName || "EDC Incubation Cell";
@@ -53,8 +55,11 @@ export default function EdcHubPage() {
   };
 
   const handleReject = async (id: string, roleTitle: string) => {
-    await rejectRequirement(id, "Does not align with campus incubation criteria.");
+    const reason = rejectReason.trim() || "Does not meet EDC incubation criteria.";
+    await rejectRequirement(id, reason);
     loadRequirements();
+    setRejectingId(null);
+    setRejectReason("");
     setActionSuccess(`Rejected requisition for "${roleTitle}".`);
     setTimeout(() => setActionSuccess(null), 4000);
   };
@@ -359,17 +364,67 @@ export default function EdcHubPage() {
                           onMouseLeave={e => (e.currentTarget.style.background = "var(--color-champagne-gold)")}>
                           <CheckCircle2 size={14} /> Approve &amp; Publish
                         </button>
-                        <button onClick={() => handleReject(req.id, req.role)}
-                          className="flex w-full items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-semibold transition-all duration-200 mb-2"
-                          style={{
-                            background: "transparent",
-                            border: "1px solid rgba(157,98,95,0.40)",
-                            color: "var(--color-blush-suede)",
-                          }}
-                          onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "rgba(157,98,95,0.08)"; }}
-                          onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "transparent"; }}>
-                          <XCircle size={14} /> Reject Requisition
-                        </button>
+
+                        {/* Reject — show reason input inline */}
+                        {rejectingId === req.id ? (
+                          <div className="rounded-lg p-3 mb-2"
+                            style={{
+                              background: "rgba(157,98,95,0.07)",
+                              border: "1px solid rgba(157,98,95,0.30)",
+                            }}>
+                            <p className="text-[11px] font-bold mb-1.5" style={{ color: "var(--color-blush-suede)" }}>
+                              Reason for rejection *
+                            </p>
+                            <textarea
+                              autoFocus
+                              rows={3}
+                              value={rejectReason}
+                              onChange={e => setRejectReason(e.target.value)}
+                              placeholder="e.g. Does not align with campus incubation guidelines, missing company details..."
+                              className="w-full rounded-md px-2.5 py-2 text-[11px] resize-none outline-none"
+                              style={{
+                                background: "rgba(245,239,231,0.85)",
+                                border: "1px solid rgba(157,98,95,0.30)",
+                                color: "#2B241E",
+                              }}
+                            />
+                            <div className="mt-2 flex gap-2">
+                              <button
+                                onClick={() => handleReject(req.id, req.role)}
+                                disabled={!rejectReason.trim()}
+                                className="flex-1 rounded-md py-1.5 text-[11px] font-bold transition-all"
+                                style={{
+                                  background: rejectReason.trim() ? "var(--color-blush-suede)" : "rgba(157,98,95,0.30)",
+                                  color: "#fff",
+                                  cursor: rejectReason.trim() ? "pointer" : "not-allowed",
+                                }}>
+                                Confirm Reject
+                              </button>
+                              <button
+                                onClick={() => { setRejectingId(null); setRejectReason(""); }}
+                                className="flex-1 rounded-md py-1.5 text-[11px] font-semibold transition-all"
+                                style={{
+                                  background: "transparent",
+                                  border: "1px solid var(--border)",
+                                  color: "var(--color-muted-taupe)",
+                                }}>
+                                Cancel
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <button onClick={() => { setRejectingId(req.id); setRejectReason(""); }}
+                            className="flex w-full items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-semibold transition-all duration-200 mb-2"
+                            style={{
+                              background: "transparent",
+                              border: "1px solid rgba(157,98,95,0.40)",
+                              color: "var(--color-blush-suede)",
+                            }}
+                            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "rgba(157,98,95,0.08)"; }}
+                            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "transparent"; }}>
+                            <XCircle size={14} /> Reject Requisition
+                          </button>
+                        )}
                       </>
                     )}
 
@@ -390,17 +445,31 @@ export default function EdcHubPage() {
                     )}
 
                     {isRejected && (
-                      <div className="rounded-lg p-2.5 text-center mb-2"
+                      <div className="rounded-lg p-2.5 mb-2"
                         style={{
                           background: "rgba(157,98,95,0.08)",
                           border: "1px solid rgba(157,98,95,0.25)",
                         }}>
-                        <p className="text-[11.5px] font-bold" style={{ color: "var(--color-blush-suede)" }}>
-                          Requisition Rejected
+                        <p className="text-[11.5px] font-bold flex items-center gap-1" style={{ color: "var(--color-blush-suede)" }}>
+                          <XCircle size={13} /> Requisition Rejected
                         </p>
                         <p className="text-[10px] mt-0.5" style={{ color: "var(--color-muted-taupe)" }}>
                           Hidden from the student board.
                         </p>
+                        {req.rejectionReason && (
+                          <div className="mt-2 rounded-md px-2 py-1.5"
+                            style={{
+                              background: "rgba(157,98,95,0.10)",
+                              border: "1px solid rgba(157,98,95,0.20)",
+                            }}>
+                            <p className="font-mono text-[9px] font-bold uppercase tracking-wider mb-0.5" style={{ color: "var(--color-blush-suede)", opacity: 0.8 }}>
+                              Reason
+                            </p>
+                            <p className="text-[11px] leading-relaxed" style={{ color: "#7A4040" }}>
+                              {req.rejectionReason}
+                            </p>
+                          </div>
+                        )}
                       </div>
                     )}
 

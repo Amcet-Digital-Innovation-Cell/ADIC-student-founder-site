@@ -129,25 +129,38 @@ export function AuthGateway() {
     startupsIncubated: 15,
   });
 
-  const handleLoginSubmit = (e: React.FormEvent) => {
+  const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     if (!loginEmail.trim()) {
       setError("Please enter your email address.");
       return;
     }
-    const success = login(loginEmail, activeRole);
-    if (!success) {
-      setError("Invalid credentials. Please try again or use Quick Demo.");
+    if (!loginPassword.trim()) {
+      setError("Please enter your password.");
+      return;
+    }
+    const result = await login(loginEmail, activeRole, loginPassword);
+    if (!result.success) {
+      setError(result.message || "Invalid credentials. Please try again or use Quick Demo.");
+      return;
     }
   };
 
-  const handleStudentRegister = (e: React.FormEvent) => {
+  const handleStudentRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
     if (!studentForm.name.trim() || !studentForm.email.trim()) {
       setError("Please provide your name and email address.");
+      return;
+    }
+    if (!studentForm.password.trim()) {
+      setError("Please create a password.");
+      return;
+    }
+    if (studentForm.password !== studentForm.confirmPassword) {
+      setError("Passwords do not match. Please re-enter them.");
       return;
     }
     if (!studentForm.department) {
@@ -187,15 +200,26 @@ export function AuthGateway() {
       studentProfile,
     };
 
-    register(newUser);
+    const result = await register(newUser, studentForm.password);
+    if (!result.success) {
+      setError(result.message || "Registration failed. Please check your details and try again.");
+      return;
+    }
+    if (result.message) {
+      setError(result.message);
+    }
   };
 
-  const handleFounderRegister = (e: React.FormEvent) => {
+  const handleFounderRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
     if (!founderForm.name.trim() || !founderForm.email.trim() || !founderForm.companyName.trim()) {
       setError("Please fill in your name, company email, and company name.");
+      return;
+    }
+    if (!founderForm.password.trim()) {
+      setError("Please create a password.");
       return;
     }
 
@@ -218,15 +242,26 @@ export function AuthGateway() {
       founderProfile,
     };
 
-    register(newUser);
+    const result = await register(newUser, founderForm.password);
+    if (!result.success) {
+      setError(result.message || "Registration failed. Please check your details and try again.");
+      return;
+    }
+    if (result.message) {
+      setError(result.message);
+    }
   };
 
-  const handleEdcRegister = (e: React.FormEvent) => {
+  const handleEdcRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
     if (!edcForm.name.trim() || !edcForm.email.trim() || !edcForm.institutionName.trim()) {
       setError("Please fill in your name, official institutional email, and institution name.");
+      return;
+    }
+    if (!edcForm.password.trim()) {
+      setError("Please create a password.");
       return;
     }
 
@@ -248,7 +283,14 @@ export function AuthGateway() {
       edcProfile,
     };
 
-    register(newUser);
+    const result = await register(newUser, edcForm.password);
+    if (!result.success) {
+      setError(result.message || "Registration failed. Please check your details and try again.");
+      return;
+    }
+    if (result.message) {
+      setError(result.message);
+    }
   };
 
   const toggleSkill = (skill: string) => {

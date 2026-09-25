@@ -285,6 +285,7 @@ export async function rejectRequirement(
         ...r,
         approvalStatus: "REJECTED" as const,
         edcNotes: reason || "Does not meet campus incubation requisites.",
+        rejectionReason: reason || "Does not meet campus incubation requisites.",
       };
       return updatedRequirement;
     }
@@ -347,7 +348,13 @@ export async function getApplicationsByFounder(founderEmail: string, founderComp
       .map((r) => r.id)
   );
   const allApplications = getStoredApplications();
-  return allApplications.filter((a) => founderReqIds.has(a.requirementId));
+  // Filter strictly: use founderEmail field if present, else fall back to requirementId match
+  return allApplications.filter((a) => {
+    if (a.founderEmail) {
+      return a.founderEmail.toLowerCase() === founderEmail.toLowerCase();
+    }
+    return founderReqIds.has(a.requirementId);
+  });
 }
 
 // Founder updates a candidate's application status
@@ -375,17 +382,25 @@ export async function submitApplication(
   options?: {
     roleTitle?: string;
     companyName?: string;
+    founderEmail?: string;
     department?: string;
     college?: string;
     linkedinUrl?: string;
     githubUrl?: string;
     portfolioUrl?: string;
     note?: string;
+    skills?: string[];
   }
 ): Promise<Application> {
+  // Resolve founderEmail from the requirement if not explicitly passed
+  const allRequirements = getStoredRequirements();
+  const req = allRequirements.find((r) => r.id === requirementId);
+  const resolvedFounderEmail = options?.founderEmail || req?.founderEmail;
+
   const application: Application = {
     id: `APP-${Math.floor(Math.random() * 9000 + 1000)}`,
     requirementId,
+    founderEmail: resolvedFounderEmail,
     applicantName,
     applicantEmail,
     roleTitle: options?.roleTitle,
@@ -395,6 +410,7 @@ export async function submitApplication(
     linkedinUrl: options?.linkedinUrl,
     githubUrl: options?.githubUrl,
     portfolioUrl: options?.portfolioUrl,
+    skills: options?.skills,
     note: options?.note,
     createdAt: new Date().toISOString(),
   };

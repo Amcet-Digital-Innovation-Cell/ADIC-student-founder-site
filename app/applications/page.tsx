@@ -258,26 +258,6 @@ function FounderRequestReview({ founderEmail, founderCompany }: { founderEmail: 
                 </div>
               )}
 
-              <div className="mt-5 border-t pt-4" style={{ borderColor: "var(--divider)" }}>
-                <div className="flex items-center justify-between gap-3">
-                  <p className="text-xs font-bold" style={{ color: "var(--text-primary)" }}>
-                    Student applicants for this requisition
-                  </p>
-                  <span className="text-[10px] font-semibold" style={{ color: "var(--text-muted)" }}>
-                    {applications.filter((application) => application.requirementId === requirement.id).length} applicant(s)
-                  </span>
-                </div>
-                <div className="mt-3 space-y-2">
-                  {applications.filter((application) => application.requirementId === requirement.id).map((application) => (
-                    <ApplicantCard key={application.id} app={application} onStatusChange={handleStatusChange} />
-                  ))}
-                  {applications.every((application) => application.requirementId !== requirement.id) && (
-                    <p className="rounded-xl px-3 py-3 text-[11px]" style={{ background: "var(--surface-green)", color: "var(--text-muted)" }}>
-                      No students have applied to this requisition yet.
-                    </p>
-                  )}
-                </div>
-              </div>
             </div>
           ))
         )}
@@ -427,81 +407,142 @@ function ApplicantCard({ app, onStatusChange }: {
   app: Application;
   onStatusChange: (appId: string, status: "Reviewing" | "Interviewing" | "Accepted" | "Rejected") => void;
 }) {
-  const colorIdx = app.applicantName.charCodeAt(0) % 5;
-  const colors = ["#0B5D3B", "#267A56", "#C49A4A", "#B05B2E", "#4A7FA5"];
-  const effectiveStatus = app.status ?? "Reviewing";
+  const colorIdx = app.applicantName.charCodeAt(0) % 6;
+  const avatarColors = ["#0B5D3B", "#267A56", "#B38E60", "#9D625F", "#4A7FA5", "#7B5EA7"];
+  const effectiveStatus = (app.status === "Selected" ? "Accepted" : app.status) ?? "Reviewing";
+
+  const statusConfig: Record<string, { bg: string; text: string; border: string }> = {
+    Reviewing:    { bg: "rgba(184,149,104,0.12)", text: "var(--color-champagne-gold, #B38E60)", border: "rgba(184,149,104,0.35)" },
+    Interviewing: { bg: "rgba(74,127,165,0.12)",  text: "#4A7FA5",                              border: "rgba(74,127,165,0.35)" },
+    Accepted:     { bg: "rgba(16,185,129,0.12)",  text: "#059669",                              border: "rgba(16,185,129,0.35)" },
+    Rejected:     { bg: "rgba(157,98,95,0.12)",   text: "#9D625F",                              border: "rgba(157,98,95,0.35)" },
+  };
+  const sc = statusConfig[effectiveStatus] ?? statusConfig["Reviewing"];
 
   return (
-    <div className="rounded-xl p-4 transition"
-      style={{ border: "1px solid var(--border)", background: "var(--surface)" }}
-      onMouseEnter={e => (e.currentTarget.style.borderColor = "var(--border-strong)")}
-      onMouseLeave={e => (e.currentTarget.style.borderColor = "var(--border)")}>
-      <div className="flex items-start gap-3">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full font-bold text-sm text-white"
-          style={{ background: colors[colorIdx] }}>
-          {app.applicantName.charAt(0).toUpperCase()}
-        </div>
+    <div className="overflow-hidden rounded-2xl transition-all duration-200"
+      style={{ border: "1.5px solid var(--border)", background: "var(--surface)" }}>
+      <div className="h-1 w-full" style={{ background: sc.text, opacity: 0.6 }} />
 
-        <div className="flex-1 min-w-0">
-          <div className="flex items-start justify-between gap-2">
-            <div>
-              <p className="font-bold text-sm" style={{ color: "var(--text-primary)" }}>{app.applicantName}</p>
-              {app.department && (
-                <p className="flex items-center gap-1 text-[11px] mt-0.5" style={{ color: "var(--text-muted)" }}>
-                  <GraduationCap size={10} style={{ color: "var(--secondary)" }} />
-                  <span className="font-medium" style={{ color: "var(--text-secondary)" }}>{app.department}</span>
-                  {app.college && <span>&middot; {app.college}</span>}
+      <div className="p-5">
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex min-w-0 items-start gap-3.5">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl font-bold text-lg text-white shadow-sm"
+              style={{ background: avatarColors[colorIdx] }}>
+              {app.applicantName.charAt(0).toUpperCase()}
+            </div>
+
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="font-serif text-lg font-bold leading-tight" style={{ color: "var(--text-primary)" }}>
+                  {app.applicantName}
                 </p>
+                {app.roleTitle && (
+                  <span className="rounded-full px-2 py-0.5 text-[10px] font-bold"
+                    style={{ background: "rgba(184,149,104,0.12)", color: "var(--gold)", border: "1px solid rgba(184,149,104,0.35)" }}>
+                    {app.roleTitle}
+                  </span>
+                )}
+              </div>
+
+              {(app.companyName || app.department || app.college) && (
+                <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs" style={{ color: "var(--text-muted)" }}>
+                  {app.companyName && (
+                    <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5"
+                      style={{ background: "var(--surface-green)", color: "var(--text-muted)", border: "1px solid var(--border)" }}>
+                      <Building2 size={10} /> {app.companyName}
+                    </span>
+                  )}
+                  {app.department && (
+                    <span className="font-medium" style={{ color: "var(--text-secondary)" }}>{app.department}</span>
+                  )}
+                  {app.college && <span>· {app.college}</span>}
+                </div>
               )}
             </div>
-            <span className="flex items-center gap-1 shrink-0 text-[10px]" style={{ color: "var(--text-muted)" }}>
+          </div>
+
+          <div className="flex shrink-0 flex-col items-end gap-2">
+            <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold"
+              style={{ background: sc.bg, color: sc.text, border: `1px solid ${sc.border}` }}>
+              <span className="h-1.5 w-1.5 rounded-full" style={{ background: sc.text }} />
+              {effectiveStatus}
+            </span>
+            <span className="flex items-center gap-1 text-[10px]" style={{ color: "var(--text-muted)" }}>
               <Clock size={10} /> {relativeTime(app.createdAt)}
             </span>
           </div>
+        </div>
 
-          {(app.skills ?? []).length > 0 && (
-            <div className="mt-2 flex flex-wrap gap-1">
+        {(app.skills ?? []).length > 0 && (
+          <div className="mt-4">
+            <p className="mb-1.5 font-mono text-[10px] font-bold uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>Skills</p>
+            <div className="flex flex-wrap gap-1.5">
               {(app.skills ?? []).map((s) => (
-                <span key={s} className="tag-green rounded-full px-2 py-0.5 text-[10px]">{s}</span>
+                <span key={s} className="tag-green rounded-full px-2.5 py-0.5 text-[11px] font-semibold">{s}</span>
               ))}
             </div>
-          )}
+          </div>
+        )}
 
-          {app.note && (
-            <p className="mt-2 rounded-xl px-3 py-2 text-[11.5px] italic leading-relaxed"
-              style={{ background: "var(--primary-light)", color: "var(--text-secondary)" }}>
-              &ldquo;{app.note}&rdquo;
-            </p>
-          )}
+        {app.note && (
+          <div className="mt-4 rounded-xl px-4 py-3"
+            style={{ background: "rgba(184,149,104,0.07)", border: "1px solid rgba(184,149,104,0.20)" }}>
+            <p className="mb-1 font-mono text-[10px] font-bold uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>Pitch Note</p>
+            <p className="text-[12.5px] italic leading-relaxed" style={{ color: "var(--text-secondary)" }}>&ldquo;{app.note}&rdquo;</p>
+          </div>
+        )}
 
-          <div className="mt-2 flex flex-wrap items-center gap-2">
+        {(app.linkedinUrl || app.githubUrl || app.portfolioUrl) && (
+          <div className="mt-4 flex flex-wrap gap-2">
             {app.linkedinUrl && (
               <a href={app.linkedinUrl} target="_blank" rel="noreferrer"
-                className="flex items-center gap-1 text-[11px] font-semibold hover:underline" style={{ color: "#0A66C2" }}>
-                <Linkedin size={11} /> LinkedIn <ArrowUpRight size={10} />
+                className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition hover:opacity-80"
+                style={{ background: "rgba(10,102,194,0.10)", color: "#0A66C2", border: "1px solid rgba(10,102,194,0.25)" }}>
+                <Linkedin size={12} /> LinkedIn <ArrowUpRight size={10} />
               </a>
             )}
             {app.githubUrl && (
               <a href={app.githubUrl} target="_blank" rel="noreferrer"
-                className="flex items-center gap-1 text-[11px] font-semibold hover:underline" style={{ color: "var(--text-secondary)" }}>
-                <Github size={11} /> GitHub <ArrowUpRight size={10} />
+                className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition hover:opacity-80"
+                style={{ background: "rgba(36,41,47,0.08)", color: "var(--text-primary)", border: "1px solid var(--border)" }}>
+                <Github size={12} /> GitHub <ArrowUpRight size={10} />
               </a>
             )}
             {app.portfolioUrl && (
               <a href={app.portfolioUrl} target="_blank" rel="noreferrer"
-                className="flex items-center gap-1 text-[11px] font-semibold hover:underline" style={{ color: "var(--secondary)" }}>
-                <Globe size={11} /> Portfolio <ArrowUpRight size={10} />
+                className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition hover:opacity-80"
+                style={{ background: "rgba(11,93,59,0.08)", color: "var(--secondary)", border: "1px solid rgba(11,93,59,0.20)" }}>
+                <Globe size={12} /> Portfolio <ArrowUpRight size={10} />
               </a>
             )}
           </div>
+        )}
 
-          <div className="mt-3 flex items-center justify-between pt-3" style={{ borderTop: "1px solid var(--divider)" }}>
-            <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>Move stage:</span>
-            <StatusSelector appId={app.id}
-              current={effectiveStatus}
-              onUpdate={onStatusChange} />
+        <div className="mt-5 pt-4" style={{ borderTop: "1px solid var(--divider)" }}>
+          <p className="mb-2.5 font-mono text-[10px] font-bold uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>Move Candidate Stage</p>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            {([
+              { key: "Reviewing", label: "Under Review", activeStyle: { background: "rgba(184,149,104,0.18)", color: "#9A7840", border: "1.5px solid #B38E60" }, inactiveStyle: { background: "var(--surface-green)", color: "var(--text-muted)", border: "1px solid var(--border)" } },
+              { key: "Interviewing", label: "Interviewing", activeStyle: { background: "rgba(74,127,165,0.15)", color: "#4A7FA5", border: "1.5px solid #4A7FA5" }, inactiveStyle: { background: "var(--surface-green)", color: "var(--text-muted)", border: "1px solid var(--border)" } },
+              { key: "Accepted", label: "Accept ✓", activeStyle: { background: "rgba(16,185,129,0.20)", color: "#059669", border: "1.5px solid #059669" }, inactiveStyle: { background: "var(--surface-green)", color: "var(--text-muted)", border: "1px solid var(--border)" } },
+              { key: "Rejected", label: "Reject ✗", activeStyle: { background: "rgba(157,98,95,0.18)", color: "#9D625F", border: "1.5px solid #9D625F" }, inactiveStyle: { background: "var(--surface-green)", color: "var(--text-muted)", border: "1px solid var(--border)" } },
+            ] as const).map(({ key, label, activeStyle, inactiveStyle }) => (
+              <button key={key}
+                onClick={() => onStatusChange(app.id, key)}
+                className="rounded-xl py-2.5 text-[11px] font-bold transition-all duration-150"
+                style={effectiveStatus === key ? activeStyle : inactiveStyle}
+                onMouseEnter={e => { if (effectiveStatus !== key) (e.currentTarget as HTMLElement).style.borderColor = "var(--border-strong)"; }}
+                onMouseLeave={e => { if (effectiveStatus !== key) (e.currentTarget as HTMLElement).style.borderColor = "var(--border)"; }}>
+                {label}
+              </button>
+            ))}
           </div>
         </div>
+
+        <p className="mt-3 text-[10px]" style={{ color: "var(--text-muted)" }}>
+          📧 {app.applicantEmail}
+        </p>
       </div>
     </div>
   );
@@ -661,6 +702,231 @@ function FounderInflowDashboard({ founderEmail }: { founderEmail: string }) {
   );
 }
 
+function FounderDashboard({ founderEmail, founderCompany }: { founderEmail: string; founderCompany?: string }) {
+  const [tab, setTab] = useState<"applicants" | "edc">("applicants");
+  const [applications, setApplications] = useState<Application[]>([]);
+  const [requirements, setRequirements] = useState<Requirement[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState<"ALL" | "Reviewing" | "Interviewing" | "Accepted" | "Rejected">("ALL");
+
+  useEffect(() => {
+    Promise.all([
+      getApplicationsByFounder(founderEmail, founderCompany),
+      getRequirements(true),
+    ]).then(([apps, allReqs]) => {
+      setApplications(apps);
+      const normalizedEmail = founderEmail.toLowerCase();
+      const normalizedCompany = founderCompany?.toLowerCase();
+      setRequirements(allReqs.filter((r) =>
+        r.founderEmail.toLowerCase() === normalizedEmail ||
+        (normalizedCompany && r.company.toLowerCase() === normalizedCompany)
+      ));
+      setLoading(false);
+    });
+  }, [founderEmail, founderCompany]);
+
+  const handleStatusChange = async (appId: string, status: "Reviewing" | "Interviewing" | "Accepted" | "Rejected") => {
+    await updateApplicationStatus(appId, status);
+    setApplications((prev) => prev.map((a) => a.id === appId ? { ...a, status } : a));
+  };
+
+  const normalizeStatus = (s?: string) => (s === "Selected" ? "Accepted" : s ?? "Reviewing");
+  const counts = {
+    ALL: applications.length,
+    Reviewing:    applications.filter((a) => normalizeStatus(a.status) === "Reviewing").length,
+    Interviewing: applications.filter((a) => normalizeStatus(a.status) === "Interviewing").length,
+    Accepted:     applications.filter((a) => normalizeStatus(a.status) === "Accepted").length,
+    Rejected:     applications.filter((a) => normalizeStatus(a.status) === "Rejected").length,
+  };
+  const filtered = filter === "ALL" ? applications : applications.filter((a) => normalizeStatus(a.status) === filter);
+
+  const reqCounts = {
+    all:      requirements.length,
+    pending:  requirements.filter((r) => r.approvalStatus === "PENDING_APPROVAL").length,
+    approved: requirements.filter((r) => r.approvalStatus === "APPROVED").length,
+    rejected: requirements.filter((r) => r.approvalStatus === "REJECTED").length,
+  };
+
+
+
+  return (
+    <main className="mx-auto max-w-4xl px-4 py-10 sm:px-6">
+      {/* Page header */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <div className="flex items-center gap-2.5">
+            <h1 className="font-serif text-2xl font-bold" style={{ color: "var(--text-primary)" }}>Applicants</h1>
+            <span className="badge-verified rounded-full px-2.5 py-0.5 font-mono text-[10px] font-bold">Founder View</span>
+          </div>
+          <p className="mt-1 text-sm" style={{ color: "var(--text-secondary)" }}>
+            Review students who applied to your requirements and move them through your pipeline.
+          </p>
+        </div>
+        <Link href="/requirements"
+          className="self-start rounded-xl px-4 py-2 text-xs font-bold text-white transition"
+          style={{ background: "var(--primary)" }}
+          onMouseEnter={e => ((e.currentTarget as HTMLElement).style.background = "var(--primary-hover)")}
+          onMouseLeave={e => ((e.currentTarget as HTMLElement).style.background = "var(--primary)")}>
+          + Post Requirement
+        </Link>
+      </div>
+
+      {/* Tab switcher */}
+      <div className="mt-6 flex gap-1 rounded-xl p-1" style={{ background: "var(--surface-green)", border: "1px solid var(--border)" }}>
+        {([
+          { key: "applicants" as const, label: `👥 Applicants (${counts.ALL})` },
+          { key: "edc"        as const, label: `🏛️ EDC Review (${reqCounts.all})` },
+        ]).map(({ key, label }) => (
+          <button key={key} onClick={() => setTab(key)}
+            className="flex-1 rounded-lg py-2 text-xs font-bold transition-all"
+            style={tab === key
+              ? { background: "var(--primary)", color: "white" }
+              : { background: "transparent", color: "var(--text-muted)" }}>
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {/* ── APPLICANTS TAB ── */}
+      {tab === "applicants" && (
+        <>
+          {/* Stat tiles */}
+          {!loading && (
+            <div className="mt-5 grid grid-cols-5 gap-2">
+              {([
+                { label: "Total",        key: "ALL",          bg: "var(--surface-green)",   text: "var(--text-primary)" },
+                { label: "Reviewing",    key: "Reviewing",    bg: "var(--gold-soft)",        text: "var(--gold)" },
+                { label: "Interviewing", key: "Interviewing", bg: "var(--primary-light)",    text: "var(--secondary)" },
+                { label: "Accepted",     key: "Accepted",     bg: "rgba(16,185,129,0.15)",   text: "#059669" },
+                { label: "Rejected",     key: "Rejected",     bg: "rgba(157,98,95,0.15)",    text: "#9D625F" },
+              ] as const).map(({ label, key, bg, text }) => (
+                <div key={key} onClick={() => setFilter(key)}
+                  className="cursor-pointer rounded-xl p-2.5 text-center transition-all"
+                  style={{
+                    background: bg, color: text,
+                    border: filter === key ? `2px solid ${text}` : "2px solid transparent",
+                    boxShadow: filter === key ? `0 2px 8px ${text}25` : "none",
+                  }}>
+                  <p className="text-xl font-bold">{counts[key]}</p>
+                  <p className="text-[10px] font-semibold opacity-80">{label}</p>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Filter pills */}
+          <div className="mt-4 flex flex-wrap items-center gap-2 pb-4" style={{ borderBottom: "1px solid var(--border)" }}>
+            <span className="text-xs font-semibold mr-1" style={{ color: "var(--text-muted)" }}>Filter:</span>
+            {(["ALL", "Reviewing", "Interviewing", "Accepted", "Rejected"] as const).map((st) => (
+              <button key={st} onClick={() => setFilter(st)}
+                className="rounded-full border px-3.5 py-1 text-xs font-semibold transition-all"
+                style={filter === st
+                  ? { background: "var(--primary)", color: "white", borderColor: "var(--primary)" }
+                  : { background: "var(--surface)", borderColor: "var(--border)", color: "var(--text-secondary)" }}>
+                {st}{st !== "ALL" && <span className="ml-1 opacity-70">({counts[st]})</span>}
+              </button>
+            ))}
+          </div>
+
+          {/* Applicant cards */}
+          <div className="mt-5 space-y-4">
+            {loading ? (
+              [1, 2].map((i) => <div key={i} className="h-40 animate-pulse rounded-2xl" style={{ background: "var(--surface-green)" }} />)
+            ) : applications.length === 0 ? (
+              <div className="rounded-2xl py-20 text-center" style={{ border: "1.5px dashed var(--border)" }}>
+                <Send size={28} className="mx-auto mb-3" style={{ color: "var(--border-strong)" }} />
+                <p className="font-bold" style={{ color: "var(--text-primary)" }}>No applications received yet</p>
+                <p className="mt-1 text-sm" style={{ color: "var(--text-muted)" }}>
+                  Once students apply to your requirements, their profiles will appear here.
+                </p>
+              </div>
+            ) : filtered.length === 0 ? (
+              <div className="rounded-2xl py-16 text-center" style={{ border: "1.5px dashed var(--border)" }}>
+                <p className="font-bold" style={{ color: "var(--text-primary)" }}>No candidates in this stage</p>
+                <p className="mt-1 text-sm" style={{ color: "var(--text-muted)" }}>Try a different filter above.</p>
+              </div>
+            ) : (
+              filtered.map((app) => (
+                <ApplicantCard key={app.id} app={app} onStatusChange={handleStatusChange} />
+              ))
+            )}
+          </div>
+
+          {!loading && applications.length > 0 && (
+            <p className="mt-8 text-center text-[11px]" style={{ color: "var(--text-muted)" }}>
+              <ShieldCheck size={11} className="inline mr-1" />
+              Status changes are reflected instantly on the student&apos;s tracking dashboard.
+            </p>
+          )}
+        </>
+      )}
+
+      {/* ── EDC REVIEW TAB ── */}
+      {tab === "edc" && (
+        <>
+          {!loading && (
+            <div className="mt-5 grid grid-cols-4 gap-2">
+              {[
+                { label: "Total Submitted", count: reqCounts.all,      bg: "var(--surface-green)",  text: "var(--text-primary)" },
+                { label: "Pending Review",  count: reqCounts.pending,  bg: "var(--gold-soft)",       text: "var(--gold)" },
+                { label: "Approved & Live", count: reqCounts.approved, bg: "rgba(16,185,129,0.15)",  text: "#059669" },
+                { label: "Rejected",        count: reqCounts.rejected, bg: "rgba(157,98,95,0.15)",   text: "#9D625F" },
+              ].map((m) => (
+                <div key={m.label} className="rounded-xl p-3 text-center" style={{ background: m.bg, color: m.text }}>
+                  <p className="text-xl font-bold">{m.count}</p>
+                  <p className="text-[10px] font-semibold opacity-80">{m.label}</p>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="mt-5 space-y-4">
+            {loading ? (
+              [1, 2].map((i) => <div key={i} className="h-32 animate-pulse rounded-2xl" style={{ background: "var(--surface-green)" }} />)
+            ) : requirements.length === 0 ? (
+              <div className="rounded-2xl py-20 text-center" style={{ border: "1.5px dashed var(--border)" }}>
+                <Rocket size={28} className="mx-auto mb-3" style={{ color: "var(--border-strong)" }} />
+                <p className="font-bold" style={{ color: "var(--text-primary)" }}>No requirements submitted yet</p>
+                <p className="mt-1 text-sm" style={{ color: "var(--text-muted)" }}>Post a requirement to begin the EDC review process.</p>
+              </div>
+            ) : (
+              requirements.map((req) => {
+                return (
+                  <div key={req.id} className="rounded-2xl p-5" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                      <div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <h2 className="text-base font-bold" style={{ color: "var(--text-primary)" }}>{req.role}</h2>
+                          <span className="font-mono text-[10px]" style={{ color: "var(--text-muted)" }}>{req.id}</span>
+                        </div>
+                        <p className="mt-1 flex items-center gap-1.5 text-xs" style={{ color: "var(--text-secondary)" }}>
+                          <Landmark size={12} style={{ color: "var(--secondary)" }} /> {req.company}
+                        </p>
+                      </div>
+                      <RequirementStatusPill status={req.approvalStatus} />
+                    </div>
+                    <div className="mt-3 grid gap-2 text-xs sm:grid-cols-3" style={{ color: "var(--text-muted)" }}>
+                      <span>Submitted {req.posted}</span>
+                      <span>{req.location}</span>
+                      <span>{req.stipend}</span>
+                    </div>
+                    {req.approvalStatus === "REJECTED" && req.edcNotes && (
+                      <div className="mt-3 flex gap-2 rounded-xl p-3 text-xs" style={{ background: "rgba(157,98,95,0.08)", color: "#9D625F" }}>
+                        <AlertCircle size={14} className="mt-0.5 shrink-0" />
+                        <span>{req.edcNotes}</span>
+                      </div>
+                    )}
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </>
+      )}
+    </main>
+  );
+}
+
 export default function ApplicationsPage() {
   const { user, role } = useAuth();
   const [applications, setApplications] = useState<Application[]>([]);
@@ -677,7 +943,7 @@ export default function ApplicationsPage() {
   }, [user?.email, role]);
 
   if (role === "founder") {
-    return <FounderRequestReview
+    return <FounderDashboard
       founderEmail={user?.email ?? ""}
       founderCompany={user?.founderProfile?.companyName}
     />;

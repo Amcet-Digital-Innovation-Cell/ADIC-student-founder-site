@@ -14,6 +14,7 @@ import {
   ShieldAlert,
 } from "lucide-react";
 import { useAuth } from "@/lib/AuthContext";
+import { supabase } from "@/lib/supabase";
 import type { UserRole, StudentProfile, FounderProfile, EdcProfile, AuthUser } from "@/types";
 import { Input } from "@/components/ui/input";
 
@@ -43,12 +44,13 @@ const POPULAR_SKILLS = [
 function LoginFormContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { login, register, demoLogin } = useAuth();
+  const { login, register } = useAuth();
 
   const initialRole = (searchParams.get("role") as UserRole) || "student";
   const [role, setRole] = useState<UserRole>(initialRole);
   const [mode, setMode] = useState<"signin" | "register">("signin");
   const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   // Common sign in state
   const [email, setEmail] = useState("");
@@ -110,27 +112,61 @@ function LoginFormContent() {
     }
   };
 
-  const handleSignIn = (e: React.FormEvent) => {
+  const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setSuccessMessage(null);
     if (!email.trim()) {
       setError("Please enter your email.");
       return;
     }
-    login(email, role);
+    if (!password.trim()) {
+      setError("Please enter your password.");
+      return;
+    }
+    const result = await login(email, role, password);
+    if (!result.success) {
+      setError(result.message || "Invalid credentials. Please try again.");
+      return;
+    }
     redirectToRolePortal(role);
   };
 
-  const handleDemo = (r: UserRole) => {
-    demoLogin(r);
-    redirectToRolePortal(r);
+  const handleForgotPassword = async () => {
+    const trimmedEmail = email.trim();
+    setError(null);
+    setSuccessMessage(null);
+
+    if (!trimmedEmail) {
+      setError("Please enter your email address first.");
+      return;
+    }
+
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(trimmedEmail.toLowerCase(), {
+        redirectTo: `${window.location.origin}/login`,
+      });
+
+      if (error) {
+        setError(error.message || "Unable to send password reset email.");
+        return;
+      }
+
+      setSuccessMessage("Password reset link sent. Check your inbox and follow the instructions.");
+    } catch (err: any) {
+      setError(err?.message || "Unable to send password reset email.");
+    }
   };
 
-  const handleStudentRegister = (e: React.FormEvent) => {
+  const handleStudentRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     if (!studentForm.name || !studentForm.email) {
       setError("Please fill in your name and email.");
+      return;
+    }
+    if (!studentForm.password.trim()) {
+      setError("Please create a password.");
       return;
     }
 
@@ -160,14 +196,26 @@ function LoginFormContent() {
       studentProfile,
     };
 
-    register(newUser);
+    const result = await register(newUser, studentForm.password);
+    if (!result.success) {
+      setError(result.message || "Registration failed. Please try again.");
+      return;
+    }
+    if (result.message && result.message.includes("Please check your email")) {
+      setError(result.message);
+      return;
+    }
     redirectToRolePortal("student");
   };
 
-  const handleFounderRegister = (e: React.FormEvent) => {
+  const handleFounderRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!founderForm.name || !founderForm.email || !founderForm.companyName) {
       setError("Please fill in your name, work email, and company name.");
+      return;
+    }
+    if (!founderForm.password.trim()) {
+      setError("Please create a password.");
       return;
     }
 
@@ -188,14 +236,26 @@ function LoginFormContent() {
       founderProfile,
     };
 
-    register(newUser);
+    const result = await register(newUser, founderForm.password);
+    if (!result.success) {
+      setError(result.message || "Registration failed. Please try again.");
+      return;
+    }
+    if (result.message && result.message.includes("Please check your email")) {
+      setError(result.message);
+      return;
+    }
     redirectToRolePortal("founder");
   };
 
-  const handleEdcRegister = (e: React.FormEvent) => {
+  const handleEdcRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!edcForm.name || !edcForm.email || !edcForm.institutionName) {
       setError("Please fill in your name, institutional email, and institute name.");
+      return;
+    }
+    if (!edcForm.password.trim()) {
+      setError("Please create a password.");
       return;
     }
 
@@ -215,7 +275,15 @@ function LoginFormContent() {
       edcProfile,
     };
 
-    register(newUser);
+    const result = await register(newUser, edcForm.password);
+    if (!result.success) {
+      setError(result.message || "Registration failed. Please try again.");
+      return;
+    }
+    if (result.message && result.message.includes("Please check your email")) {
+      setError(result.message);
+      return;
+    }
     redirectToRolePortal("edc");
   };
 
@@ -303,6 +371,18 @@ function LoginFormContent() {
         </div>
       )}
 
+      {successMessage && (
+        <div className="mt-4 max-w-md w-full rounded-xl p-3 text-xs flex items-center gap-2"
+          style={{
+            background: "rgba(87, 138, 95, 0.12)",
+            border: "1px solid rgba(87, 138, 95, 0.28)",
+            color: "#386B43",
+          }}>
+          <ShieldAlert size={15} className="shrink-0" />
+          <span>{successMessage}</span>
+        </div>
+      )}
+
       {/* FORM CARD CONTAINER */}
       <div className="mt-6 w-full max-w-lg rounded-2xl p-6 sm:p-8"
         style={{
@@ -358,6 +438,17 @@ function LoginFormContent() {
               />
             </div>
 
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={handleForgotPassword}
+                className="text-[11px] font-semibold underline-offset-2 transition hover:underline"
+                style={{ color: "#7C6859" }}
+              >
+                Forgot password?
+              </button>
+            </div>
+
             <button
               type="submit"
               className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl py-3 text-xs sm:text-sm font-bold transition-all duration-200 shadow-sm"
@@ -370,30 +461,6 @@ function LoginFormContent() {
               onMouseLeave={e => (e.currentTarget.style.background = "#B38E60")}>
               Sign In as {role.toUpperCase()} <ArrowRight size={15} />
             </button>
-
-            {/* Quick 1-Click Demo Button */}
-            <div className="pt-3">
-              <button
-                type="button"
-                onClick={() => handleDemo(role)}
-                className="flex w-full items-center justify-center gap-2 rounded-xl py-2.5 font-mono text-xs font-semibold transition-all duration-150"
-                style={{
-                  background: "#F5EFE7",
-                  border: "1px solid #DCD3C4",
-                  color: "#6B5E50",
-                }}
-                onMouseEnter={e => {
-                  (e.currentTarget as HTMLElement).style.borderColor = "#B89568";
-                  (e.currentTarget as HTMLElement).style.color = "#111111";
-                }}
-                onMouseLeave={e => {
-                  (e.currentTarget as HTMLElement).style.borderColor = "#DCD3C4";
-                  (e.currentTarget as HTMLElement).style.color = "#6B5E50";
-                }}
-              >
-                <Sparkles size={13} style={{ color: "#B89568" }} /> ⚡ 1-Click Instant Demo Login ({role})
-              </button>
-            </div>
           </form>
         )}
 

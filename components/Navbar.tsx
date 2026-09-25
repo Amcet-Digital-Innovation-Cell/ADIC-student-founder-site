@@ -14,7 +14,7 @@ import type { UserRole } from "@/types";
 
 export function Navbar() {
   const pathname = usePathname();
-  const { user, role, logout, switchRole, isAuthenticated } = useAuth();
+  const { user, role, logout, isAuthenticated } = useAuth();
   const [profileOpen, setProfileOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -61,8 +61,8 @@ export function Navbar() {
           </Link>
         </div>
 
-        {/* Nav links for authenticated users */}
-        {isAuthenticated && (
+        {/* Nav links for authenticated users — hidden on login/root page */}
+        {isAuthenticated && pathname !== "/login" && pathname !== "/" && (
           <nav className="flex items-center gap-1 rounded-xl p-1"
             style={{
               background: "var(--color-deep-charcoal)",
@@ -107,16 +107,9 @@ export function Navbar() {
                   <FileText size={13} />
                   <span>Applicants</span>
                 </Link>
-                <Link href="/applications"
-                  className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[11.5px] font-semibold transition"
-                  style={pathname?.startsWith("/applications")
-                    ? { background: "var(--color-champagne-gold)", color: "var(--color-black-leather)" }
-                    : { color: "var(--color-muted-taupe)" }}>
-                  <Clock size={13} />
-                  <span>Request Review</span>
-                </Link>
               </>
             )}
+
 
             {role === "edc" && (
               <>
@@ -141,9 +134,9 @@ export function Navbar() {
           </nav>
         )}
 
-        {/* Right - Profile dropdown when authenticated */}
+        {/* Right - Profile dropdown when authenticated — hidden on login/root page */}
         <div className="flex items-center gap-2">
-          {isAuthenticated && user && (
+          {isAuthenticated && user && pathname !== "/login" && pathname !== "/" && (
             <div className="relative">
               <button onClick={() => setMenuOpen(!menuOpen)}
                 className="flex items-center gap-2 rounded-xl px-2.5 py-1.5 transition"
@@ -209,28 +202,6 @@ export function Navbar() {
                         <User size={13} style={{ color: "var(--color-champagne-gold)" }} />
                         {role === "student" ? "My Profile & Links" : "View Profile"}
                       </button>
-
-                      <div className="my-1 pt-1" style={{ borderTop: "1px solid rgba(184,149,104,0.12)" }}>
-                        <p className="px-3 py-1 font-mono text-[9px] font-bold uppercase tracking-widest"
-                          style={{ color: "var(--color-muted-taupe)", opacity: 0.6 }}>
-                          Switch Role
-                        </p>
-                        {(["student", "founder", "edc"] as UserRole[]).map((r) => {
-                          const isCurrentRole = role === r;
-                          return (
-                            <button key={r} onClick={() => { switchRole(r); setMenuOpen(false); }}
-                              className="flex w-full items-center justify-between rounded-lg px-3 py-1.5 text-xs capitalize transition"
-                              style={isCurrentRole
-                                ? { background: "rgba(184,149,104,0.12)", color: "var(--color-champagne-gold)", fontWeight: 700 }
-                                : { color: "var(--color-muted-taupe)" }}
-                              onMouseEnter={e => { if (!isCurrentRole) { (e.currentTarget as HTMLElement).style.background = "rgba(184,149,104,0.06)"; (e.currentTarget as HTMLElement).style.color = "var(--color-soft-cream)"; } }}
-                              onMouseLeave={e => { if (!isCurrentRole) { (e.currentTarget as HTMLElement).style.background = "transparent"; (e.currentTarget as HTMLElement).style.color = "var(--color-muted-taupe)"; } }}>
-                              <span className="flex items-center gap-2">{roleIcon(r)} {r}</span>
-                              {isCurrentRole && <span className="font-mono text-[9px]" style={{ color: "var(--color-champagne-gold)" }}>ACTIVE</span>}
-                            </button>
-                          );
-                        })}
-                      </div>
 
                       <div className="pt-1" style={{ borderTop: "1px solid rgba(184,149,104,0.12)" }}>
                         <button onClick={() => { logout(); setMenuOpen(false); }}

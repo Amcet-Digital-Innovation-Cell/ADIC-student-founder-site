@@ -20,6 +20,7 @@ export interface Requirement {
   approvedBy?: string;
   approvedAt?: string;
   edcNotes?: string;
+  rejectionReason?: string;
   isUrgent?: boolean;
 }
 
@@ -88,6 +89,7 @@ export type ApplicationStatus = "Reviewing" | "Interviewing" | "Accepted" | "Sel
 export interface Application {
   id: string;
   requirementId: string;
+  founderEmail?: string;
   roleTitle?: string;
   companyName?: string;
   applicantName: string;

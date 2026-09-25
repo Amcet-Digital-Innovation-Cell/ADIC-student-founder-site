@@ -95,11 +95,13 @@ export function RequirementCard({ requirement }: { requirement: Requirement }) {
     submitApplication(requirement.id, finalName, finalEmail, {
       roleTitle: requirement.role,
       companyName: requirement.company,
+      founderEmail: requirement.founderEmail,
       department: department || user?.studentProfile?.department,
       college: user?.studentProfile?.college,
       linkedinUrl: linkedinUrl || user?.studentProfile?.linkedinUrl,
       githubUrl: githubUrl || user?.studentProfile?.githubUrl,
       portfolioUrl: portfolioUrl || user?.studentProfile?.portfolioUrl,
+      skills: user?.studentProfile?.skills,
       note,
     });
 
