@@ -6,16 +6,17 @@ import Link from "next/link";
 import {
   GraduationCap,
   Rocket,
-  Landmark,
   ArrowRight,
   Sparkles,
   Linkedin,
   Github,
   ShieldAlert,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { useAuth } from "@/lib/AuthContext";
 import { supabase } from "@/lib/supabase";
-import type { UserRole, StudentProfile, FounderProfile, EdcProfile, AuthUser } from "@/types";
+import type { UserRole, StudentProfile, FounderProfile, AuthUser } from "@/types";
 import { Input } from "@/components/ui/input";
 
 const POPULAR_DEPARTMENTS = [
@@ -44,17 +45,25 @@ const POPULAR_SKILLS = [
 function LoginFormContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { login, register } = useAuth();
+  const { login, register, isAuthenticated, role: currentRole } = useAuth();
 
-  const initialRole = (searchParams.get("role") as UserRole) || "student";
+  // The public portal only serves Student and Founder; EDC admins use their own login.
+  const PUBLIC_ROLES = ["student", "founder"];
+  const roleParam = searchParams.get("role") as UserRole;
+  const initialRole: UserRole = PUBLIC_ROLES.includes(roleParam) ? roleParam : "student";
   const [role, setRole] = useState<UserRole>(initialRole);
-  const [mode, setMode] = useState<"signin" | "register">("signin");
+  const [mode, setMode] = useState<"signin" | "register">(
+    searchParams.get("mode") === "register" ? "register" : "signin"
+  );
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Common sign in state
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showRegisterPassword, setShowRegisterPassword] = useState(false);
 
   // Student register state
   const [studentForm, setStudentForm] = useState({
@@ -83,34 +92,30 @@ function LoginFormContent() {
     sector: "B2B SaaS",
     location: "Remote / Hybrid",
     hiringNeeds: "",
-  });
-
-  // EDC register state
-  const [edcForm, setEdcForm] = useState({
-    name: "",
-    email: "",
-    password: "",
-    institutionName: "",
-    cellName: "E-Cell & Incubation Center",
-    designation: "Faculty In-Charge & Incubation Lead",
+    companyDescription: "",
+    websiteUrl: "",
   });
 
   useEffect(() => {
     const r = searchParams.get("role") as UserRole;
-    if (r && ["student", "founder", "edc"].includes(r)) {
+    if (r && PUBLIC_ROLES.includes(r)) {
       setRole(r);
     }
   }, [searchParams]);
 
   const redirectToRolePortal = (userRole: UserRole) => {
-    if (userRole === "student") {
-      router.push("/requirements");
-    } else if (userRole === "founder") {
-      router.push("/requirements");
-    } else {
+    if (userRole === "edc") {
       router.push("/edc");
+    } else {
+      router.push("/requirements");
     }
   };
+
+  // Already signed in: send each role to its own portal instead of showing the public login.
+  useEffect(() => {
+    if (isAuthenticated && currentRole) redirectToRolePortal(currentRole);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated, currentRole]);
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -124,12 +129,15 @@ function LoginFormContent() {
       setError("Please enter your password.");
       return;
     }
-    const result = await login(email, role, password);
-    if (!result.success) {
+    setIsSubmitting(true);
+    // No role is sent: the role is resolved from the backend profile after authentication.
+    const result = await login(email, undefined, password);
+    setIsSubmitting(false);
+    if (!result.success || !result.role) {
       setError(result.message || "Invalid credentials. Please try again.");
       return;
     }
-    redirectToRolePortal(role);
+    redirectToRolePortal(result.role);
   };
 
   const handleForgotPassword = async () => {
@@ -225,6 +233,8 @@ function LoginFormContent() {
       stage: "Early Traction",
       location: founderForm.location,
       hiringNeeds: founderForm.hiringNeeds,
+      companyDescription: founderForm.companyDescription,
+      websiteUrl: founderForm.websiteUrl,
     };
 
     const newUser: AuthUser = {
@@ -248,45 +258,6 @@ function LoginFormContent() {
     redirectToRolePortal("founder");
   };
 
-  const handleEdcRegister = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!edcForm.name || !edcForm.email || !edcForm.institutionName) {
-      setError("Please fill in your name, institutional email, and institute name.");
-      return;
-    }
-    if (!edcForm.password.trim()) {
-      setError("Please create a password.");
-      return;
-    }
-
-    const edcProfile: EdcProfile = {
-      institutionName: edcForm.institutionName,
-      cellName: edcForm.cellName,
-      designation: edcForm.designation,
-      startupsIncubated: 10,
-    };
-
-    const newUser: AuthUser = {
-      id: `USR-EDC-${Date.now().toString().slice(-4)}`,
-      name: edcForm.name,
-      email: edcForm.email.toLowerCase(),
-      role: "edc",
-      createdAt: new Date().toISOString().split("T")[0],
-      edcProfile,
-    };
-
-    const result = await register(newUser, edcForm.password);
-    if (!result.success) {
-      setError(result.message || "Registration failed. Please try again.");
-      return;
-    }
-    if (result.message && result.message.includes("Please check your email")) {
-      setError(result.message);
-      return;
-    }
-    redirectToRolePortal("edc");
-  };
-
   return (
     <main className="min-h-[calc(100vh-80px)] flex flex-col items-center justify-start pt-10 pb-16 px-4 sm:px-6">
       {/* Title & Subtitle */}
@@ -295,69 +266,16 @@ function LoginFormContent() {
           {mode === "signin" ? "Sign In to Your Portal" : "Create Your Account"}
         </h1>
         <p className="mt-2 text-xs sm:text-sm font-medium leading-relaxed" style={{ color: "#665C52" }}>
-          {role === "student" &&
+          {mode === "signin" &&
+            "Enter your email and password. You'll be taken to the right dashboard automatically."}
+          {mode === "register" && role === "student" &&
             "Student Portal: Browse approved requirements, track applications, and link your GitHub/LinkedIn."}
-          {role === "founder" &&
+          {mode === "register" && role === "founder" &&
             "Founder Portal: Post talent requisitions routed to the EDC Cell for verification."}
-          {role === "edc" &&
-            "EDC Hub: Review and approve founder requirement postings for students."}
         </p>
       </div>
 
-      {/* Main Role Selection Pill Tabs (Student vs Founder) */}
-      <div className="mt-7 w-full max-w-md mx-auto grid grid-cols-2 gap-2 p-1.5 rounded-2xl"
-        style={{ background: "#E5DDCF", border: "1px solid #D8CFBF" }}>
-        {[
-          { key: "student" as const, label: "Student", icon: GraduationCap },
-          { key: "founder" as const, label: "Founder", icon: Rocket },
-        ].map(({ key, label, icon: Icon }) => {
-          const isActive = role === key;
-          return (
-            <button
-              key={key}
-              type="button"
-              onClick={() => { setRole(key); setError(null); }}
-              className="flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-xs sm:text-sm font-bold transition-all duration-200"
-              style={isActive
-                ? {
-                    background: "#111111",
-                    color: "#F3EBDD",
-                    boxShadow: "0 2px 8px rgba(17,17,17,0.15)",
-                  }
-                : {
-                    background: "transparent",
-                    color: "#5A4E42",
-                  }}
-            >
-              <Icon size={16} style={{ color: isActive ? "#B89568" : "#8A7D6E" }} />
-              <span>{label}</span>
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Auth Mode Switcher (Sign In vs Register / Create Account) */}
-      <div className="mt-5 flex justify-center">
-        <div className="inline-flex rounded-xl p-1 gap-1"
-          style={{ background: "#1F1C1A" }}>
-          {(["signin", "register"] as const).map((m) => {
-            const isActive = mode === m;
-            return (
-              <button
-                key={m}
-                type="button"
-                onClick={() => setMode(m)}
-                className="rounded-lg px-6 py-2 text-xs font-bold transition-all duration-200"
-                style={isActive
-                  ? { background: "#B89568", color: "#111111" }
-                  : { background: "transparent", color: "#A99C8C" }}
-              >
-                {m === "signin" ? "Sign In" : "Register / Create Account"}
-              </button>
-            );
-          })}
-        </div>
-      </div>
+      <div className="mt-2" />
 
       {error && (
         <div className="mt-4 max-w-md w-full rounded-xl p-3 text-xs flex items-center gap-2"
@@ -404,11 +322,7 @@ function LoginFormContent() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder={
-                  role === "student"
-                    ? "student@campus.edu"
-                    : role === "founder"
-                    ? "founder@company.co"
-                    : "ecell.head@university.ac.in"
+                  role === "student" ? "student@campus.edu" : "founder@company.co"
                 }
                 className="w-full rounded-xl px-3.5 py-2.5 text-xs sm:text-sm outline-none transition-all"
                 style={{
@@ -423,19 +337,29 @@ function LoginFormContent() {
               <label className="block text-xs font-bold tracking-wide mb-1.5" style={{ color: "#2B241E" }}>
                 Password
               </label>
-              <input
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                className="w-full rounded-xl px-3.5 py-2.5 text-xs sm:text-sm outline-none transition-all"
-                style={{
-                  background: "#F5EFE7",
-                  border: "1px solid #DCD3C4",
-                  color: "#111111",
-                }}
-              />
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full rounded-xl pl-3.5 pr-10 py-2.5 text-xs sm:text-sm outline-none transition-all"
+                  style={{
+                    background: "#F5EFE7",
+                    border: "1px solid #DCD3C4",
+                    color: "#111111",
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((prev) => !prev)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-[#7C6859] hover:text-[#111111] transition"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
             </div>
 
             <div className="flex justify-end">
@@ -451,7 +375,8 @@ function LoginFormContent() {
 
             <button
               type="submit"
-              className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl py-3 text-xs sm:text-sm font-bold transition-all duration-200 shadow-sm"
+              disabled={isSubmitting}
+              className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl py-3 text-xs sm:text-sm font-bold transition-all duration-200 shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
               style={{
                 background: "#B38E60",
                 color: "#FFFFFF",
@@ -459,9 +384,50 @@ function LoginFormContent() {
               }}
               onMouseEnter={e => (e.currentTarget.style.background = "#9F7C50")}
               onMouseLeave={e => (e.currentTarget.style.background = "#B38E60")}>
-              Sign In as {role.toUpperCase()} <ArrowRight size={15} />
+              {isSubmitting ? "Signing in..." : <>Login <ArrowRight size={15} /></>}
             </button>
+
+            <p className="pt-1 text-center text-xs" style={{ color: "#665C52" }}>
+              Don&apos;t have an account?{" "}
+              <button
+                type="button"
+                onClick={() => { setMode("register"); setError(null); }}
+                className="font-bold underline"
+                style={{ color: "#111111" }}
+              >
+                Create Account
+              </button>
+            </p>
           </form>
+        )}
+
+        {/* REGISTER: email + role question */}
+        {mode === "register" && (
+          <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div>
+              <label className="block text-xs font-bold mb-1" style={{ color: "#2B241E" }}>
+                {role === "founder" ? "Work Email *" : "Email Address *"}
+              </label>
+              <Input type="email" required value={studentForm.email}
+                onChange={(e) => {
+                  setStudentForm({ ...studentForm, email: e.target.value });
+                  setFounderForm({ ...founderForm, email: e.target.value });
+                }}
+                placeholder={role === "founder" ? "arun@ashbolt.co" : "priya@college.edu"}
+                className="text-xs bg-[#F5EFE7] border-[#DCD3C4]" />
+            </div>
+            <div>
+              <label className="block text-xs font-bold mb-1" style={{ color: "#2B241E" }}>
+                How would you like to register? *
+              </label>
+              <select value={role}
+                onChange={(e) => { setRole(e.target.value as UserRole); setError(null); }}
+                className="w-full h-9 rounded-md border px-3 text-xs outline-none bg-[#F5EFE7] border-[#DCD3C4]">
+                <option value="founder">Founder</option>
+                <option value="student">Student</option>
+              </select>
+            </div>
+          </div>
         )}
 
         {/* STUDENT REGISTRATION FORM */}
@@ -481,19 +447,23 @@ function LoginFormContent() {
                   onChange={(e) => setStudentForm({ ...studentForm, name: e.target.value })}
                   placeholder="e.g. Priya Sharma" className="text-xs bg-[#F5EFE7] border-[#DCD3C4]" />
               </div>
-              <div>
-                <label className="block text-xs font-bold mb-1" style={{ color: "#2B241E" }}>Email Address *</label>
-                <Input type="email" required value={studentForm.email}
-                  onChange={(e) => setStudentForm({ ...studentForm, email: e.target.value })}
-                  placeholder="priya@college.edu" className="text-xs bg-[#F5EFE7] border-[#DCD3C4]" />
-              </div>
             </div>
 
             <div>
               <label className="block text-xs font-bold mb-1" style={{ color: "#2B241E" }}>Password *</label>
-              <Input type="password" required value={studentForm.password}
-                onChange={(e) => setStudentForm({ ...studentForm, password: e.target.value })}
-                placeholder="••••••••" className="text-xs bg-[#F5EFE7] border-[#DCD3C4]" />
+              <div className="relative">
+                <Input type={showRegisterPassword ? "text" : "password"} required value={studentForm.password}
+                  onChange={(e) => setStudentForm({ ...studentForm, password: e.target.value })}
+                  placeholder="••••••••" className="text-xs bg-[#F5EFE7] border-[#DCD3C4] pr-10" />
+                <button
+                  type="button"
+                  onClick={() => setShowRegisterPassword((prev) => !prev)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-[#7C6859] hover:text-[#111111] transition"
+                  aria-label={showRegisterPassword ? "Hide password" : "Show password"}
+                >
+                  {showRegisterPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+                </button>
+              </div>
             </div>
 
             <div>
@@ -517,7 +487,7 @@ function LoginFormContent() {
                 <label className="flex items-center gap-1 text-xs font-bold mb-1" style={{ color: "#2B241E" }}>
                   <Linkedin size={12} className="text-[#0A66C2]" /> LinkedIn URL
                 </label>
-                <Input type="url" value={studentForm.linkedinUrl}
+                <Input type="url" required value={studentForm.linkedinUrl}
                   onChange={(e) => setStudentForm({ ...studentForm, linkedinUrl: e.target.value })}
                   placeholder="https://linkedin.com/in/..." className="text-xs bg-[#F5EFE7] border-[#DCD3C4]" />
               </div>
@@ -536,6 +506,18 @@ function LoginFormContent() {
               style={{ background: "#B38E60", color: "#FFFFFF" }}>
               Complete Registration &amp; Open Roles <ArrowRight size={14} className="inline ml-1" />
             </button>
+
+            <p className="pt-1 text-center text-xs" style={{ color: "#665C52" }}>
+              Already have an account?{" "}
+              <button
+                type="button"
+                onClick={() => { setMode("signin"); setError(null); }}
+                className="font-bold underline"
+                style={{ color: "#111111" }}
+              >
+                Sign In
+              </button>
+            </p>
           </form>
         )}
 
@@ -556,12 +538,6 @@ function LoginFormContent() {
                   onChange={(e) => setFounderForm({ ...founderForm, name: e.target.value })}
                   placeholder="e.g. Arun Kumar" className="text-xs bg-[#F5EFE7] border-[#DCD3C4]" />
               </div>
-              <div>
-                <label className="block text-xs font-bold mb-1" style={{ color: "#2B241E" }}>Work Email *</label>
-                <Input type="email" required value={founderForm.email}
-                  onChange={(e) => setFounderForm({ ...founderForm, email: e.target.value })}
-                  placeholder="arun@ashbolt.co" className="text-xs bg-[#F5EFE7] border-[#DCD3C4]" />
-              </div>
             </div>
 
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -573,10 +549,35 @@ function LoginFormContent() {
               </div>
               <div>
                 <label className="block text-xs font-bold mb-1" style={{ color: "#2B241E" }}>Password *</label>
-                <Input type="password" required value={founderForm.password}
-                  onChange={(e) => setFounderForm({ ...founderForm, password: e.target.value })}
-                  placeholder="••••••••" className="text-xs bg-[#F5EFE7] border-[#DCD3C4]" />
+                <div className="relative">
+                  <Input type={showRegisterPassword ? "text" : "password"} required value={founderForm.password}
+                    onChange={(e) => setFounderForm({ ...founderForm, password: e.target.value })}
+                    placeholder="••••••••" className="text-xs bg-[#F5EFE7] border-[#DCD3C4] pr-10" />
+                  <button
+                    type="button"
+                    onClick={() => setShowRegisterPassword((prev) => !prev)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-[#7C6859] hover:text-[#111111] transition"
+                    aria-label={showRegisterPassword ? "Hide password" : "Show password"}
+                  >
+                    {showRegisterPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+                  </button>
+                </div>
               </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold mb-1" style={{ color: "#2B241E" }}>Company Description *</label>
+              <textarea required rows={3} value={founderForm.companyDescription}
+                onChange={(e) => setFounderForm({ ...founderForm, companyDescription: e.target.value })}
+                placeholder="What does your startup do?"
+                className="w-full rounded-md border px-3 py-2 text-xs outline-none bg-[#F5EFE7] border-[#DCD3C4]" />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold mb-1" style={{ color: "#2B241E" }}>Website URL (optional)</label>
+              <Input type="url" value={founderForm.websiteUrl}
+                onChange={(e) => setFounderForm({ ...founderForm, websiteUrl: e.target.value })}
+                placeholder="https://yourstartup.com" className="text-xs bg-[#F5EFE7] border-[#DCD3C4]" />
             </div>
 
             <button type="submit"
@@ -584,24 +585,21 @@ function LoginFormContent() {
               style={{ background: "#B38E60", color: "#FFFFFF" }}>
               Register &amp; Post Requirement <ArrowRight size={14} className="inline ml-1" />
             </button>
+
+            <p className="pt-1 text-center text-xs" style={{ color: "#665C52" }}>
+              Already have an account?{" "}
+              <button
+                type="button"
+                onClick={() => { setMode("signin"); setError(null); }}
+                className="font-bold underline"
+                style={{ color: "#111111" }}
+              >
+                Sign In
+              </button>
+            </p>
           </form>
         )}
 
-      </div>
-
-      {/* EDC Admin Portal Link at bottom */}
-      <div className="mt-8 text-center">
-        <button
-          type="button"
-          onClick={() => { setRole("edc"); setError(null); }}
-          className="inline-flex items-center gap-1.5 text-xs font-semibold tracking-wide transition-all"
-          style={{ color: "#7A6C5B" }}
-          onMouseEnter={e => (e.currentTarget.style.color = "#111111")}
-          onMouseLeave={e => (e.currentTarget.style.color = "#7A6C5B")}
-        >
-          <Landmark size={14} style={{ color: "#B89568" }} />
-          <span>🏛️ EDC Cell / Incubation Admin Portal Sign In →</span>
-        </button>
       </div>
     </main>
   );
