@@ -133,11 +133,11 @@ function LoginFormContent() {
     // No role is sent: the role is resolved from the backend profile after authentication.
     const result = await login(email, undefined, password);
     setIsSubmitting(false);
-    if (!result.success || !result.role) {
+    if (!result.success) {
       setError(result.message || "Invalid credentials. Please try again.");
       return;
     }
-    redirectToRolePortal(result.role);
+    // Redirect is handled by the useEffect watching isAuthenticated + currentRole
   };
 
   const handleForgotPassword = async () => {
