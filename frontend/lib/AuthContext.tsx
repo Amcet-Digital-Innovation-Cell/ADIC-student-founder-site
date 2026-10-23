@@ -190,17 +190,6 @@ function mapSupabaseUserToAuthUser(user: {
     };
   }
 
-  if (resolvedRole === "edc") {
-    baseUser.edcProfile = metadata.edcProfile || {
-      institutionName: metadata.institutionName || "University",
-      cellName: metadata.cellName || "E-Cell",
-      designation: metadata.designation || "Faculty In-Charge",
-      portalUrl: metadata.portalUrl || "",
-      linkedinUrl: metadata.linkedinUrl || "",
-      startupsIncubated: metadata.startupsIncubated || 0,
-    };
-  }
-
   return baseUser;
 }
 

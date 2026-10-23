@@ -3,7 +3,7 @@ import type { NextFunction, Request, Response } from "express";
 import cors from "cors";
 import { randomUUID } from "node:crypto";
 import { env } from "./config/env.js";
-import { supabase } from "./lib/supabase.js";
+import { supabase, db } from "./lib/supabase.js";
 import { seedApplications, seedRequirements, seedStartups } from "./data/seed.js";
 
 const app = express();
@@ -143,7 +143,7 @@ async function getRequirementsFromSupabase(includeAll = false) {
     return includeAll ? [...store.requirements] : store.requirements.filter((r) => r.approvalStatus === "APPROVED");
   }
 
-  const { data, error } = await supabase.from("requirements").select("*");
+  const { data, error } = await db()!.from("requirements").select("*");
   if (error) {
     throw new Error("Could not load requirements from Supabase.");
   }
@@ -154,20 +154,20 @@ async function getRequirementsFromSupabase(includeAll = false) {
 
 async function getApplicationsByQueries(studentEmail?: string, founderEmail?: string, founderCompany?: string) {
   if (!supabase) {
-    const filtered = [...store.applications];
+    let filtered = [...store.applications];
     if (studentEmail) {
-      return filtered.filter((a) => a.applicantEmail.toLowerCase() === studentEmail.toLowerCase());
+      filtered = filtered.filter((a) => a.applicantEmail.toLowerCase() === studentEmail.toLowerCase());
     }
     if (founderEmail) {
-      return filtered.filter((a) => a.founderEmail?.toLowerCase() === founderEmail.toLowerCase());
+      filtered = filtered.filter((a) => a.founderEmail?.toLowerCase() === founderEmail.toLowerCase());
     }
     if (founderCompany) {
-      return filtered.filter((a) => a.companyName?.toLowerCase() === founderCompany.toLowerCase());
+      filtered = filtered.filter((a) => a.companyName?.toLowerCase() === founderCompany.toLowerCase());
     }
     return filtered;
   }
 
-  let query = supabase.from("applications").select("*");
+  let query = db()!.from("applications").select("*");
 
   if (studentEmail) {
     query = query.ilike("applicant_email", studentEmail);
@@ -175,6 +175,10 @@ async function getApplicationsByQueries(studentEmail?: string, founderEmail?: st
 
   if (founderEmail) {
     query = query.ilike("founder_email", founderEmail);
+  }
+
+  if (founderCompany) {
+    query = query.ilike("company_name", founderCompany);
   }
 
   const { data, error } = await query;
@@ -196,7 +200,7 @@ app.get("/api/profile", requireAuthenticatedUser, async (_req, res) => {
     return;
   }
 
-  const { data, error } = await supabase.from("profiles").select("*").eq("id", authUser.id).maybeSingle();
+  const { data, error } = await db()!.from("profiles").select("*").eq("id", authUser.id).maybeSingle();
   if (error) {
     res.status(500).json({ error: "Could not load your profile." });
     return;
@@ -208,7 +212,7 @@ app.get("/api/profile", requireAuthenticatedUser, async (_req, res) => {
   }
 
   const initialProfile = profileFromAuthUser(authUser);
-  const { data: created, error: createError } = await supabase.from("profiles").upsert(initialProfile).select("*").single();
+  const { data: created, error: createError } = await db()!.from("profiles").upsert(initialProfile).select("*").single();
   if (createError || !created) {
     res.status(500).json({ error: "Could not initialize your profile. Apply the profiles migration in Supabase." });
     return;
@@ -237,7 +241,7 @@ app.put("/api/profile", requireAuthenticatedUser, async (req, res) => {
     updated_at: new Date().toISOString(),
   };
 
-  const { data, error } = await supabase.from("profiles").upsert(profileRow).select("*").single();
+  const { data, error } = await db()!.from("profiles").upsert(profileRow).select("*").single();
   if (error || !data) {
     res.status(500).json({ error: "Could not save your profile." });
     return;
@@ -286,7 +290,7 @@ app.post("/api/requirements", requireAuthenticatedUser, async (req, res) => {
     : "OPEN";
 
   const requirement = {
-    id: `REQ-${Math.floor(Math.random() * 900 + 100)}`,
+    id: `REQ-${randomUUID().slice(0, 8).toUpperCase()}`,
     company: input.company,
     role: input.role,
     stack: String(input.stack ?? "")
@@ -313,7 +317,7 @@ app.post("/api/requirements", requireAuthenticatedUser, async (req, res) => {
     return;
   }
 
-  const { data, error } = await supabase.from("requirements").insert([requirement]).select().single();
+  const { data, error } = await db()!.from("requirements").insert([requirement]).select().single();
   if (error || !data) {
     res.status(500).json({ error: "Could not save the requirement to Supabase." });
     return;
@@ -345,7 +349,7 @@ app.post("/api/requirements/:id/approve", requireAuthenticatedUser, requireEdcUs
     return;
   }
 
-  const { data, error } = await supabase.from("requirements").update({
+  const { data, error } = await db()!.from("requirements").update({
     approval_status: "APPROVED",
     approved_by: updatedBy,
     approved_at: new Date().toISOString(),
@@ -381,7 +385,7 @@ app.post("/api/requirements/:id/reject", requireAuthenticatedUser, requireEdcUse
     return;
   }
 
-  const { data, error } = await supabase.from("requirements").update({
+  const { data, error } = await db()!.from("requirements").update({
     approval_status: "REJECTED",
     edc_notes: reason,
     rejection_reason: reason,
@@ -444,7 +448,7 @@ app.post("/api/applications", requireAuthenticatedUser, async (req, res) => {
   }
 
   const body = req.body ?? {};
-  const { data: requirement, error: requirementError } = await supabase
+  const { data: requirement, error: requirementError } = await db()!
     .from("requirements")
     .select("*")
     .eq("id", body.requirementId)
@@ -479,7 +483,7 @@ app.post("/api/applications", requireAuthenticatedUser, async (req, res) => {
     created_at: new Date().toISOString(),
   };
 
-  const { data, error } = await supabase.from("applications").insert([application]).select().single();
+  const { data, error } = await db()!.from("applications").insert([application]).select().single();
   if (error || !data) {
     res.status(500).json({ error: "Could not save the application." });
     return;
@@ -504,7 +508,7 @@ app.post("/api/applications/:id/resume-upload", requireAuthenticatedUser, async 
     return;
   }
 
-  const { data: application, error: applicationError } = await supabase
+  const { data: application, error: applicationError } = await db()!
     .from("applications")
     .select("id, applicant_id")
     .eq("id", req.params.id)
@@ -550,7 +554,7 @@ app.patch("/api/applications/:id/resume", requireAuthenticatedUser, async (req, 
     return;
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await db()!
     .from("applications")
     .update({ resume_path: expectedPath })
     .eq("id", req.params.id)
@@ -572,7 +576,7 @@ app.get("/api/applications/:id/resume-url", requireAuthenticatedUser, async (req
     return;
   }
 
-  const { data: application, error: applicationError } = await supabase
+  const { data: application, error: applicationError } = await db()!
     .from("applications")
     .select("applicant_id, founder_id, founder_email, resume_path")
     .eq("id", req.params.id)
@@ -619,7 +623,7 @@ app.patch("/api/applications/:id/status", requireAuthenticatedUser, async (req, 
     return;
   }
 
-  const { data: application, error: applicationError } = await supabase
+  const { data: application, error: applicationError } = await db()!
     .from("applications")
     .select("*")
     .eq("id", req.params.id)
@@ -635,7 +639,7 @@ app.patch("/api/applications/:id/status", requireAuthenticatedUser, async (req, 
     return;
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await db()!
     .from("applications")
     .update({ status })
     .eq("id", req.params.id)
