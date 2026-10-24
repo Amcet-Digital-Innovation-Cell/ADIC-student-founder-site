@@ -47,9 +47,9 @@ const config: Config = {
         char:    "var(--char)",
       },
       fontFamily: {
-        sans:    ["Inter", "Manrope", "system-ui", "sans-serif"],
-        serif:   ["Cormorant Garamond", "Georgia", "serif"],
-        display: ["Cormorant Garamond", "Georgia", "serif"],
+        sans:    ["var(--font-inter)", "var(--font-manrope)", "system-ui", "sans-serif"],
+        serif:   ["var(--font-cormorant)", "Georgia", "serif"],
+        display: ["var(--font-cormorant)", "Georgia", "serif"],
         mono:    ["ui-monospace", "monospace"],
       },
       boxShadow: {
