@@ -1,0 +1,14 @@
+{
+  // Tailwind v4 uses custom at-rules (@config, @theme, @source, @utility, @variant).
+  // The built-in VS Code CSS linter doesn't know about them — suppress the false warnings.
+  "css.lint.unknownAtRules": "ignore",
+
+  // Associate .css files with Tailwind CSS for better IntelliSense (requires the
+  // official "Tailwind CSS IntelliSense" VS Code extension).
+  "files.associations": {
+    "*.css": "tailwindcss"
+  },
+
+  // Tailwind IntelliSense: treat @config as a valid entry point.
+  "tailwindCSS.experimental.configFile": "./tailwind.config.ts"
+}

@@ -9,13 +9,17 @@ build/
 .next/
 out/
 
-# Environment files
+# Environment files — ignore all local env files
 .env
 .env.local
+.env.*
 .env.*.local
 .env.development.local
 .env.test.local
 .env.production.local
+# But keep example templates in version control
+!.env.example
+!**/.env.example
 
 # Logs
 *.log
@@ -27,8 +31,9 @@ yarn-error.log*
 .DS_Store
 Thumbs.db
 
-# IDE
-.vscode/
+# IDE — ignore personal configs, but share workspace settings
+.vscode/*
+!.vscode/settings.json
 .idea/
 
 # Vercel

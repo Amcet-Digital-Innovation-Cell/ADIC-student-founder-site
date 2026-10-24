@@ -145,8 +145,14 @@ Founder-hub-main/
 ## 🚀 Getting Started
 
 ### Prerequisites
-- **Node.js** v18+ and **npm** v9+
+- **Node.js** v18.17+ and **npm** v9+
 - A [Supabase](https://supabase.com/) project (free tier works)
+
+> **Verify your versions:**
+> ```bash
+> node -v   # should be ≥ 18.17.0
+> npm -v    # should be ≥ 9.0.0
+> ```
 
 ---
 
@@ -162,9 +168,10 @@ cd Founder-hub-main
 
 ```bash
 cd backend
+cp .env.example .env
 ```
 
-Create a `.env` file:
+Edit `backend/.env` and fill in your real values:
 
 ```env
 SUPABASE_URL=https://your-project.supabase.co
@@ -173,6 +180,9 @@ PORT=4000
 
 # Comma-separated Supabase user UUIDs granted the EDC admin role
 EDC_USER_IDS=uuid-1,uuid-2,uuid-3
+
+# Postgres schema (must match SQL migrations)
+DB_SCHEMA=founder_hub
 ```
 
 Install and start:
@@ -192,7 +202,7 @@ cd frontend
 cp .env.example .env.local
 ```
 
-Edit `.env.local`:
+Edit `frontend/.env.local`:
 
 ```env
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
@@ -209,6 +219,8 @@ npm install
 npm run dev
 # App runs at http://localhost:3000
 ```
+
+> **Root workspace (optional):** If you run the Next.js app from the repo root instead of `frontend/`, copy the root `.env.example` to `.env.local` there and fill in the same three variables.
 
 ---
 
@@ -246,6 +258,26 @@ cd backend
 npm run build
 node dist/index.js
 ```
+
+---
+
+### 6. Lint, Audit, and Tests
+
+**Lint (frontend):**
+```bash
+cd frontend   # or repo root
+npm run lint
+```
+
+**Security audit:**
+```bash
+# From repo root
+npm audit
+# From backend/
+cd backend && npm audit
+```
+
+> No automated test suite is currently configured. The `npm test` script is not defined in either `package.json`.
 
 ---
 
