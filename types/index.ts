@@ -59,6 +59,7 @@ export interface FounderProfile {
   linkedinUrl?: string;
   location: string;
   hiringNeeds?: string;
+  companyDescription?: string;
 }
 
 export interface EdcProfile {
